@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 
 // Desafio Batalha Naval - MateCheck
 // Este código inicial serve como base para o desenvolvimento do sistema de Batalha Naval.
@@ -6,6 +7,8 @@
 
 #define TABULEIRO_TAM 10
 #define NAVIO_TAM 3
+#define H 5         // Tamanho das matrizes de habilidade
+#define X 3         // Tamanho das matrizes de habilidade
 
 // ----------------------------
 // Função: inicializa o tabuleiro com água (0)
@@ -134,6 +137,101 @@ void exibirTabuleiro(int tabuleiro[TABULEIRO_TAM][TABULEIRO_TAM]) {
     }
 }
 
+
+// --------------------------------------------------
+// Cria matriz em forma de cone apontando para baixo
+//
+//   0 0 1 0 0
+//   0 1 1 1 0
+//   1 1 1 1 1
+//
+// Condição: linha >= coluna central - camada  && linha <= coluna central + camada
+// --------------------------------------------------
+void criarCone(int cone[H][H]) {
+    int centro = H / 2;
+
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < H; j++) {
+            if (i >= 0 && j >= centro - i && j <= centro + i)
+                cone[i][j] = 1;
+            else
+                cone[i][j] = 0;
+        }
+    }
+}
+
+// --------------------------------------------------
+// Cria matriz em forma de cruz
+//
+//      0 0 1 0 0
+//      0 0 1 0 0
+//      1 1 1 1 1
+//      0 0 1 0 0
+//      0 0 1 0 0
+//
+// Condição: i == centro || j == centro
+// --------------------------------------------------
+void criarCruz(int cruz[H][H]) {
+    int centro = (H / 2);
+    for (int i = 0; i < H; i++){
+        for (int j = 0; j < H; j++){
+            cruz[i][j] = (i == centro || j == centro) ? 2 : 0;
+        }
+    }
+}
+
+// --------------------------------------------------
+// Cria matriz em forma de octaedro (losango)
+//
+//        0 0 1 0 0
+//        0 1 1 1 0
+//        1 1 1 1 1
+//        0 1 1 1 0
+//        0 0 1 0 0
+//
+// Condição: |i - centro| + |j - centro| <= raio
+// --------------------------------------------------
+void criarOctaedro(int oct[H][H]) {
+    int centro = H / 2;
+    int raio = H / 2;
+
+    for (int i = 0; i < H; i++)
+        for (int j = 0; j < H; j++)
+            oct[i][j] = (abs(i - centro) + abs(j - centro) <= raio) ? 4 : 0;
+}
+
+
+// --------------------------------------------------
+// Sobrepõe matriz de habilidade ao tabuleiro
+// Marca valor 5 nas posições atingidas
+// --------------------------------------------------
+void aplicarHabilidade(int tabuleiro[TABULEIRO_TAM][TABULEIRO_TAM], int matriz[H][H], int origemL, int origemC) {
+
+    int offset = H / 2;  // Quantas casas a matriz se estende ao redor do centro
+
+    for (int i = 0; i < H; i++) {
+        for (int j = 0; j < H; j++) {
+
+            if (matriz[i][j] == 1 || matriz[i][j] == 2 || matriz[i][j] == 4  ) {
+
+                int linhaTab = origemL + (i - offset);
+                int colTab = origemC + (j - offset);
+
+                // Verifica limites
+                if (linhaTab >= 0 && linhaTab < TABULEIRO_TAM &&
+                    colTab >= 0 && colTab < TABULEIRO_TAM) {
+
+                    // Evita sobrescrever navios
+                    if (tabuleiro[linhaTab][colTab] == 0)
+                        tabuleiro[linhaTab][colTab] = matriz[i][j] ;
+                }
+            }
+        }
+    }
+}
+
+
+
 // ----------------------------
 // Função principal
 // ----------------------------
@@ -148,44 +246,6 @@ int main() {
     // Sugestão: Expanda o tabuleiro para uma matriz 10x10.
     // Sugestão: Posicione quatro navios no tabuleiro, incluindo dois na diagonal.
     // Sugestão: Exiba o tabuleiro completo no console, mostrando 0 para posições vazias e 3 para posições ocupadas.
-
-    int tabuleiro[TABULEIRO_TAM][TABULEIRO_TAM];
-    inicializarTabuleiro(tabuleiro);
-
-    // ------------------------------------------
-    // DEFINE AS COORDENADAS (fixas para o nível)
-    // Você pode mudar os valores se quiser
-    // ------------------------------------------
-    int Hlinha = 1, Hcol = 2;   // Horizontal
-    int Vlinha = 4, Vcol = 7;   // Vertical
-
-    int DClinha = 2, DCcol = 2; // Diagonal crescente
-    int DDlinha = 6, DDcol = 4; // Diagonal decrescente
-
-    // ------------------------------------------
-    // POSICIONA OS NAVIOS
-    // ------------------------------------------
-
-    if (validarHorizontal(Hlinha, Hcol, tabuleiro))
-        incluirNavioHorizontal(Hlinha, Hcol, tabuleiro);
-    else printf("Erro ao posicionar navio horizontal!\n");
-
-    if (validarVertical(Vlinha, Vcol, tabuleiro))
-        incluirNavioVertical(Vlinha, Vcol, tabuleiro);
-    else printf("Erro ao posicionar navio vertical!\n");
-
-    if (validarDiagonalCrescente(DClinha, DCcol, tabuleiro))
-        incluirNavioDiagonalCrescente(DClinha, DCcol, tabuleiro);
-    else printf("Erro ao posicionar navio diagonal crescente!\n");
-
-    if (validarDiagonalDecrescente(DDlinha, DDcol, tabuleiro))
-        incluirNavioDiagonalDecrescente(DDlinha, DDcol, tabuleiro);
-    else printf("Erro ao posicionar navio diagonal decrescente!\n");
-
-    // ------------------------------------------
-    // EXIBE O TABULEIRO FINAL
-    // ---------
-    exibirTabuleiro(tabuleiro);
 
     // Nível Mestre - Habilidades Especiais com Matrizes
     // Sugestão: Crie matrizes para representar habilidades especiais como cone, cruz, e octaedro.
@@ -207,6 +267,72 @@ int main() {
     // 0 0 1 0 0
     // 1 1 1 1 1
     // 0 0 1 0 0
+
+
+
+    int tabuleiro[TABULEIRO_TAM][TABULEIRO_TAM];
+    inicializarTabuleiro(tabuleiro);
+
+
+ // ------------------------------------------
+    // DEFINE AS COORDENADAS (fixas para o nível)
+    // Você pode mudar os valores se quiser
+    // ------------------------------------------
+    int Hlinha = 0, Hcol = 4;   // Horizontal
+    int Vlinha = 6, Vcol = 9;   // Vertical
+
+    int DClinha = 1, DCcol = 4; // Diagonal crescente
+    int DDlinha = 6, DDcol = 8; // Diagonal decrescente
+
+    // ------------------------------------------
+    // POSICIONA OS NAVIOS
+    // ------------------------------------------
+
+    if (validarHorizontal(Hlinha, Hcol, tabuleiro))
+        incluirNavioHorizontal(Hlinha, Hcol, tabuleiro);
+    else printf("Erro ao posicionar navio horizontal!\n");
+
+    if (validarVertical(Vlinha, Vcol, tabuleiro))
+        incluirNavioVertical(Vlinha, Vcol, tabuleiro);
+    else printf("Erro ao posicionar navio vertical!\n");
+
+    if (validarDiagonalCrescente(DClinha, DCcol, tabuleiro))
+        incluirNavioDiagonalCrescente(DClinha, DCcol, tabuleiro);
+    else printf("Erro ao posicionar navio diagonal crescente!\n");
+
+    if (validarDiagonalDecrescente(DDlinha, DDcol, tabuleiro))
+        incluirNavioDiagonalDecrescente(DDlinha, DDcol, tabuleiro);
+    else printf("Erro ao posicionar navio diagonal decrescente!\n");
+
+    // Matriz do cone
+    int cone[H][H];
+    criarCone(cone);
+
+    // Matriz da cruz
+    int cruz[H][H];
+    criarCruz(cruz);
+
+    // Matriz do octaedro
+    int oct[H][H];
+    criarOctaedro(oct);
+
+
+     // ------------------------------------------
+    // APLICAR HABILIDADES NAS COORDENADAS:
+    //
+    // (3,3) cone
+    // (6,6) cruz
+    // (5,2) octaedro
+    // ------------------------------------------
+    aplicarHabilidade(tabuleiro, cone, 3, 2);
+    aplicarHabilidade(tabuleiro, cruz, 4, 7);
+    aplicarHabilidade(tabuleiro, oct, 7, 2);
+
+
+    // ------------------------------------------
+    // EXIBE O TABULEIRO FINAL
+    // ---------
+    exibirTabuleiro(tabuleiro);
 
     return 0;
 }
